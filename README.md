@@ -1,6 +1,4 @@
-# UICoinCatalog UICoin Catalog
-
- UICoin is a backend addon to APICoinCatalog
-
 ## Applications use:
-Mailkit, Tests, Newtonsoft.Json
+backend: Mailkit, Tests, Newtonsoft.Json
+
+frontend: Chart.JS, TailwindCSS, RXJS, NGJS

@@ -1,0 +1,16 @@
+.backdrop{
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    background: rgba(0, 0, 0, .3);
+}
+
+.modal{
+    padding: 3rem;
+    background: #fff;
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 0);
+}

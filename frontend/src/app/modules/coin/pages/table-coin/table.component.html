@@ -1,0 +1,53 @@
+
+<div class=" grid grid-cols-7">
+    <div class="col-start-2 col-end-4">
+        <input (keyup)="onKey($event)" type="text" class="border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white " placeholder="Trying to find ...">
+    </div>
+    <div class=" col-start-6 justify-center">
+        <button (click)="cleekAdd()" class="flex-none w-10 h-10 rounded-full border border-gray-300 text-gray-900 align-middle hover:bg-gray-300"> + </button>
+    </div>
+</div>
+
+<div class="overflow-x-auto relative shadow-md sm:rounded-lg">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-gray-900 border-b">
+            <tr>
+                <th (click)="sortBy('name')" class="text-center cursor-pointer">
+                    Product name
+                </th>
+                <th (click)="sortBy('prices')" class="py-3 px-6 text-center cursor-pointer">
+                    Price
+                </th>
+                <th (click)="sortBy('volumeTraded')" class="py-3 px-6 text-center cursor-pointer">
+                    Volume Traded
+                </th>
+                <th class="py-3 px-6 text-center cursor-default">
+                    Operations
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="select-none border-b hover:bg-orange-100 bg-gray-100" *ngFor="let item of coins()">
+                <td [routerLink]="['chart',item.id]" class="py-4 px-6 font-medium text-gray-900 ">
+                    <div class="flex justify-center">
+                        <div class="mr-2">
+                            <img src="{{item.urlIcon}}">
+                        </div>
+                        <div>
+                            <p class="text-lg">{{item.name | uppercase}}</p>
+                        </div>                        
+                    </div>
+                    
+                </td>
+                <td [routerLink]="['chart',item.id]" class="py-4 px-6 font-medium text-gray-900 text-center">{{item.prices | number: '2.2-4'}} </td>
+                <td [routerLink]="['chart',item.id]" class="py-4 px-6 font-medium text-gray-900 text-center">{{item.volumeTraded | number: '3.2-4'}} </td>
+                <td class="py-4 px-6 text-center">
+                    <a (click)="cleekRefresh(item)" style="text-decoration: none" class="cursor-pointer font-medium text-green-500 mr-2">Refresh</a>
+                    <a (click)="cleekDelete(item)" style="text-decoration: none" class="cursor-pointer font-medium text-red-500 ml-2">Delete</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<ng-template dynamic-ref></ng-template>
