@@ -7,13 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Base.Contracts\Base.Contracts.csproj" />
     <ProjectReference Include="..\Base.Entity\Base.Entity.csproj" />
+    <ProjectReference Include="..\Coin.DTO\Coin.DTO.csproj" />
+    <ProjectReference Include="..\Coin.Entity\Coin.Entity.csproj" />
   </ItemGroup>
 
 </Project>

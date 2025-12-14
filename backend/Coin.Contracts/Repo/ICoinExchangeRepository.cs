@@ -1,0 +1,17 @@
+﻿using Coin.DTO;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Coin.Entity.DB;
+using Base.Contracts;
+
+namespace Coin.Contracts.Repo
+{
+    public interface ICoinExchangeRepository : IBaseRepository<CoinRate, CoinRateDto, int>
+    {
+        Task<ICollection<CoinRateDto>> GetCoinRateAllByIdAsync(int id, int step);
+        Task<DateTime> GetLastCoinRepositoryAsync(int id);
+    }
+}

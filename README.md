@@ -1,4 +1,4 @@
 ## Applications use:
-backend: Mailkit, Tests, Newtonsoft.Json
+backend: Tests, Newtonsoft.Json
 
-frontend: Chart.JS, TailwindCSS, RXJS, NGJS
+frontend: Chart.JS, TailwindCSS, Signals
