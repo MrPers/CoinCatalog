@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Coin.Api.Models
 {
-    public class CoinRateVMInDateTime
+    public class CoinPriceVMInDateTime
     {
         public double Prices { get; set; }
         public double VolumeTraded { get; set; }

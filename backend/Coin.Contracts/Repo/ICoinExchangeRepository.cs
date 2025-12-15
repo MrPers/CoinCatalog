@@ -9,9 +9,8 @@ using Base.Contracts;
 
 namespace Coin.Contracts.Repo
 {
-    public interface ICoinExchangeRepository : IBaseRepository<CoinRate, CoinRateDto, int>
+    public interface ICoinExchangeRepository : IBaseRepository<CoinPrice, CoinPriceDto, int>
     {
-        Task<ICollection<CoinRateDto>> GetCoinRateAllByIdAsync(int id, int step);
-        Task<DateTime> GetLastCoinRepositoryAsync(int id);
+        Task<ICollection<CoinPriceDto>> GetCoinsPricesByIdAsync(int id, int step);
     }
 }

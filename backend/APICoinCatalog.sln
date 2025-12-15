@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.1.11304.174 d18.0
+VisualStudioVersion = 18.1.11304.174
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Base.Contracts", "Base.Contracts\Base.Contracts.csproj", "{C986C2FF-1BF6-4ACC-B8F8-26B8BFA29A2B}"
 EndProject
@@ -22,8 +22,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coin.Data", "Coin.Data\Coin.Data.csproj", "{46892FFE-6DB2-43D9-A98D-4D9A90B7BF33}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coin.Logic", "Coin.Logic\Coin.Logic.csproj", "{F159201C-2803-4718-A208-9C58A8EB3B61}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coin.Tests", "Coin.Tests\Coin.Tests.csproj", "{87261D60-5508-4809-9464-88DA2C6B23D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -155,20 +153,11 @@ Global
 		{F159201C-2803-4718-A208-9C58A8EB3B61}.Release|x64.Build.0 = Release|Any CPU
 		{F159201C-2803-4718-A208-9C58A8EB3B61}.Release|x86.ActiveCfg = Release|Any CPU
 		{F159201C-2803-4718-A208-9C58A8EB3B61}.Release|x86.Build.0 = Release|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Debug|x64.Build.0 = Debug|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Debug|x86.Build.0 = Debug|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Release|x64.ActiveCfg = Release|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Release|x64.Build.0 = Release|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Release|x86.ActiveCfg = Release|Any CPU
-		{87261D60-5508-4809-9464-88DA2C6B23D9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4453230A-B18E-4D22-BEC7-4BD9FCDC7014}
 	EndGlobalSection
 EndGlobal

@@ -2,7 +2,7 @@
 
 namespace Coin.Entity.JSON
 {
-    public class CoinRateJSON
+    public class CoinPriceJSON
     {
         [JsonProperty("prices")]
         public List<List<double>> Prices { get; set; }

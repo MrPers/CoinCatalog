@@ -1,16 +1,13 @@
 ﻿using AutoMapper;
 using Coin.Contracts.Repo;
-using Coin.Entity;
 using Coin.DTO;
 using Microsoft.EntityFrameworkCore;
 using Coin.Entity.DB;
-using System.ComponentModel.DataAnnotations;
-using Base.Contracts;
 using Base.Data;
 
 namespace Coin.Data.Repository
 {
-    public class CoinExchangeRepository : BaseDataContext<CoinRate, CoinRateDto, int>, ICoinExchangeRepository
+    public class CoinExchangeRepository : BaseDataContext<CoinPrice, CoinPriceDto, int>, ICoinExchangeRepository
     {
         private readonly DataContext _context;
         private readonly IMapper _mapper;
@@ -21,33 +18,14 @@ namespace Coin.Data.Repository
             _mapper = mapper;
         }
 
-        public async Task<ICollection<CoinRateDto>> GetCoinRateAllByIdAsync([Range(1, int.MaxValue)] int id, [Range(24, int.MaxValue)] int step)
+        /// <summary>
+        /// Получение истории курсов (возможно через хранимую процедуру или оптимизированный запрос)
+        /// </summary>
+        public async Task<ICollection<CoinPriceDto>> GetCoinsPricesByIdAsync(int coinId, int step)
         {
+            var entities = await _context.GetCoins(coinId, step).ToListAsync();
 
-            var oldCoinRate = await this.PrivateGetByCoinIdAsync(id, step);
-
-            if (oldCoinRate.Count < 1 || oldCoinRate == null)
-            {
-                throw new ArgumentNullException(nameof(oldCoinRate));
-            }
-
-            return _mapper.Map<ICollection<CoinRateDto>>(oldCoinRate);
-        }
-
-        public async Task<DateTime> GetLastCoinRepositoryAsync([Range(0, long.MaxValue)] int id)
-        {
-            var result = _context.CoinRates
-                .Where(p => p.CoinId == id).OrderByDescending(x => x.Time)
-              .FirstOrDefault();
-
-            return result.Time;
-        }
-
-        private async Task<ICollection<CoinRate>> PrivateGetByCoinIdAsync([Range(0, long.MaxValue)] int id, [Range(24, int.MaxValue)] int step)
-        {
-            var oldCoinRate = await _context.GetCoins(id, step).ToListAsync();
-
-            return oldCoinRate;
+            return _mapper.Map<List<CoinPriceDto>>(entities);
         }
     }
 }

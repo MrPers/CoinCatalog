@@ -2,7 +2,7 @@
 
 namespace Coin.Entity.JSON
 {
-    public class CoinJSON
+    public class CoinDetailsJSON
     {
         [JsonProperty("name")]
         public string Name { get; set; }

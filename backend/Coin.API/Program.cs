@@ -1,13 +1,10 @@
 using Coin.Data;
-using Coin.DTO;
 using Coin.Contracts.Repo;
 using Coin.Contracts.Services;
 using Microsoft.EntityFrameworkCore;
 using Coin.Data.Repository;
 using Coin.Data.Persistence;
 using Coin.Contracts.Persistence;
-using Base.DTO;
-using Base.Data;
 using Coin.Logic;
 
 namespace Coin.Api
@@ -41,8 +38,13 @@ namespace Coin.Api
             //register a class
             services.AddScoped(typeof(ICoinRepository), typeof(CoinRepository));
             services.AddScoped(typeof(ICoinExchangeRepository), typeof(CoinExchangeRepository));
+            services.AddScoped(typeof(ICoinApiClient), typeof(CoinApiClient));
+            services.AddHttpClient<ICoinApiClient, CoinApiClient>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.coingecko.com/api/v3/");
+                client.DefaultRequestHeaders.Add("User-Agent", "MyCryptoApp/1.0");
+            });
             services.AddScoped<ICoinService, CoinService>();
-            services.AddScoped(typeof(ICoinAPI), typeof(CoinAPI));
             services.AddAutoMapper(cfg => cfg.AddProfile<Mapper>());
 
             // add services CORS
@@ -51,7 +53,7 @@ namespace Coin.Api
             string connection = configuration.GetConnectionString("DefaultConnection");
             services.AddDbContext<DataContext>(options => options.UseSqlServer(connection)); //SQL
             //services.AddDbContext<DataContext>(options => options.UseInMemoryDatabase(connection)); //Memory
-            services.AddMemoryCache();  //System.AggregateException: 'Some services are not able to be constructed (Error while validating the service descriptor 'ServiceType: MailGraphAnalysis.Contracts.Services.ILetterService Lifetime: Scoped ImplementationType: 
+            services.AddMemoryCache();  
         }
 
         public static void Configure(IApplicationBuilder app, IWebHostEnvironment env)

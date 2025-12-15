@@ -4,9 +4,9 @@ using Base.Contracts;
 
 namespace Coin.Data
 {
-    public interface ICoinRepository : IBaseRepository<Entity.DB.Coin, CoinDto, int>
+    public interface ICoinRepository : IBaseRepository<CoinDetails, CoinDetailsDto, int>
     {
-        Task<ICollection<CoinDto>> GetCoinsAllWithPreviousInformationAsync();
-        Task<CoinDto> GetCoinsAllFullInformationAsync(int id);
+        Task<ICollection<CoinDetailsDto>> GetCoinsAllWithPreviousInformationAsync();
+        Task<CoinDetailsDto> GetCoinsAllFullInformationAsync(int id);
     }
 }

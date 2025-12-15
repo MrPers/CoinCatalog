@@ -1,6 +1,10 @@
-﻿using Coin.DTO;
+﻿using Coin.Contracts.Persistence;
+using Coin.Contracts.Repo;
+using Coin.Data;
+using Coin.DTO;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,11 +13,11 @@ namespace Coin.Contracts.Services
 {
     public interface ICoinService
     {
-        Task<CoinDto> GetCoinsAllFullInformationAsync(int id);
-        Task<ICollection<CoinDto>> GetCoinsAllPreviousInformationAsync();
-        Task<ICollection<CoinRateDto>> GetCoinRateAllByIdAsync(int id, int step);
+        Task<CoinDetailsDto> GetCoinsAllFullInformationAsync(int id);
+        Task<ICollection<CoinDetailsDto>> GetCoinsAllPreviousInformationAsync();
+        Task<ICollection<CoinPriceDto>> GetCoinRateAllByIdAsync(int id, int step);
         Task DeleteCoinAsync(int id);
         Task UpdateCoinsByCoinIdAsync(int id);
-        Task AddCoinCoinExchangesAsync(string name, long ticks = 1577836800000);
+        Task AddCoinHistoryAsync(string name, long ticks);
     }
 }

@@ -1,170 +1,127 @@
 ﻿using AutoMapper;
-using Coin.Contracts.Services;
 using Coin.Api.Models;
-using Coin.Entity;
-using Coin.DTO;
+using Coin.Contracts.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace Coin.Api.Controller
+namespace Coin.Api.Controllers
 {
-    /// <summary>
-    /// Контроллер для работы с криптовалютами
-    /// </summary>
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
-    public class CoinController : ControllerBase
+    public class CoinsController : ControllerBase // Называем контроллер во множественном числе
     {
         private readonly ICoinService _coinService;
         private readonly IMapper _mapper;
-        private const long data2020 = 1546300800000;
-        private const long data2021 = 1577836800000;
-        private const string nameBTC = "bitcoin";
 
-        /// <summary>
-        /// Конструктор контроллера
-        /// </summary>
-        /// <param name="coinService">Сервис для работы с монетами</param>
-        /// <param name="mapper">Маппер для преобразования объектов</param>
-        public CoinController(
-            ICoinService coinService,
-            IMapper mapper
-        )
+        public CoinsController(ICoinService coinService, IMapper mapper)
         {
             _coinService = coinService;
             _mapper = mapper;
         }
 
         /// <summary>
-        /// Получение списка всех монет с предыдущей информацией
+        /// Получить список всех монет (краткая информация)
+        /// GET: api/coins
         /// </summary>
-        /// <returns>Список монет с информацией</returns>
-        [HttpGet("get-coins-all-previous-information")]
-        public async Task<IActionResult> GetCoinsAllPreviousInformation()
+        [HttpGet]
+        [ProducesResponseType(typeof(List<CoinDetailsVM>), 200)]
+        public async Task<ActionResult<List<CoinDetailsVM>>> GetAll()
         {
-            try
-            {
-                var coins = await _coinService.GetCoinsAllPreviousInformationAsync();
-                var coinsResult = _mapper.Map<List<CoinVM>>(coins);
-
-                return Ok(coinsResult);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var coins = await _coinService.GetCoinsAllPreviousInformationAsync();
+            var result = _mapper.Map<List<CoinDetailsVM>>(coins);
+            return Ok(result);
         }
 
         /// <summary>
-        /// Получение полной информации о монете по ID
+        /// Получить полную информацию о монете по ID
+        /// GET: api/coins/5
         /// </summary>
-        /// <param name="id">Идентификатор монеты</param>
-        /// <returns>Полная информация о монете</returns>
-        [HttpGet("get-coin-full-information-by-coin-id/{id}")]
-        public async Task<IActionResult> GetCoinFullInformation([Range(1, int.MaxValue)] int id)
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(CoinFullDetailsVM), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<CoinFullDetailsVM>> GetById([Range(1, int.MaxValue)] int id)
         {
-            try
-            {
-                var coins = await _coinService.GetCoinsAllFullInformationAsync(id);
-                var coinsResult = _mapper.Map<CoinFullVM>(coins);
+            var coin = await _coinService.GetCoinsAllFullInformationAsync(id);
 
-                return Ok(coinsResult);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            if (coin == null) return NotFound($"Coin with ID {id} not found");
+
+            var result = _mapper.Map<CoinFullDetailsVM>(coin);
+            return Ok(result);
         }
 
         /// <summary>
-        /// Получение курсов монеты за определенный период
+        /// Получить историю курсов монеты
+        /// GET: api/coins/history?id=1&step=24&inTick=true
         /// </summary>
-        /// <param name="coinRateQuestion">Параметры запроса (ID монеты, шаг времени)</param>
-        /// <returns>Список курсов монеты</returns>
-        [HttpPost("get-coinExchanges")]
-        public async Task<IActionResult> GetCoinsById(CoinRateQuestion coinRateQuestion)
+        /// <remarks>
+        /// Мы используем [FromQuery], чтобы передать параметры в URL, а не в теле запроса.
+        /// Это стандарт для получения данных.
+        /// </remarks>
+        [HttpGet("history")]
+        public async Task<IActionResult> GetHistory([FromQuery] CoinRateQuestion query)
         {
-            if (coinRateQuestion == null || coinRateQuestion.Id < 1 || coinRateQuestion.Step < 24)
+            // Валидацию лучше вынести в сам класс DTO через DataAnnotations, но оставим проверку здесь для наглядности
+            if (query.Id < 1 || query.Step < 24)
             {
-                throw new ArgumentNullException(nameof(coinRateQuestion));
+                return BadRequest("Invalid ID or Step (minimum step is 24 hours)");
             }
 
-            try
-            {
-                var coins = await _coinService.GetCoinRateAllByIdAsync(coinRateQuestion.Id, coinRateQuestion.Step);
+            var rates = await _coinService.GetCoinRateAllByIdAsync(query.Id, query.Step);
 
-                return Ok(coinRateQuestion.InTick ? _mapper.Map<List<CoinRateVMInTicks>>(coins) : _mapper.Map<List<CoinRateVMInDateTime>>(coins));
-            }
-            catch (Exception ex)
+            // Логику выбора маппинга лучше держать простой
+            if (query.InTick)
             {
-                return BadRequest(ex.Message);
+                return Ok(_mapper.Map<List<CoinPriceVMInTicks>>(rates));
             }
+
+            return Ok(_mapper.Map<List<CoinPriceVMInDateTime>>(rates));
         }
 
         /// <summary>
-        /// Добавление новой монеты с историей курсов
+        /// Добавить новую монету и загрузить историю
+        /// POST: api/coins?name=bitcoin&ticks=0
         /// </summary>
-        /// <param name="name">Название монеты</param>
-        /// <param name="ticks">Временная метка начала отслеживания</param>
-        /// <returns>Результат операции</returns>
-        [HttpPost("add-coin-&-coinExchanges/{name}")]
-        public async Task<IActionResult> AddCoinCoinExchangesAsync([FromRoute] string name = nameBTC, [Range(data2020, long.MaxValue)] long ticks = data2021)
+        [HttpPost]
+        [ProducesResponseType(201)] // 201 Created - стандарт для создания
+        public async Task<IActionResult> Create([FromQuery] string name = "bitcoin", [FromQuery] long ticks = 0)
         {
-            if (string.IsNullOrEmpty(name))
-            {
-                return ValidationProblem();
-            }
+            // В идеале параметры передавать в [FromBody] CreateCoinDto, но query тоже допустим для простых типов
+            if (string.IsNullOrWhiteSpace(name))
+                return BadRequest("Name is required");
 
             try
             {
-                await _coinService.AddCoinCoinExchangesAsync(name, ticks);
-
-                return Ok(true);
+                await _coinService.AddCoinHistoryAsync(name, ticks);
+                // По REST мы должны вернуть ссылку на созданный ресурс, но пока вернем просто Ok
+                return StatusCode(201, "Coin created and history loaded");
             }
-            catch (Exception ex)
+            catch (ArgumentException ex) // Ловим специфичные ошибки логики
             {
                 return BadRequest(ex.Message);
             }
+            // Остальные ошибки (500) лучше ловить глобальным Middleware
         }
 
         /// <summary>
-        /// Обновление данных монеты
+        /// Обновить данные монеты
+        /// PUT: api/coins/5
         /// </summary>
-        /// <param name="id">Идентификатор монеты</param>
-        /// <returns>Результат операции</returns>
-        [HttpGet("update-coin-by-id-coin/{id}")]
-        public async Task<IActionResult> UpdateCoinAsync([Range(1, int.MaxValue)] int id)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update([Range(1, int.MaxValue)] int id)
         {
-            try
-            {
-                await _coinService.UpdateCoinsByCoinIdAsync(id);
-
-                return Ok(true);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            await _coinService.UpdateCoinsByCoinIdAsync(id);
+            return NoContent(); // 204 No Content - стандарт для обновления, когда не нужно возвращать данные
         }
 
         /// <summary>
-        /// Удаление монеты и всех связанных курсов
+        /// Удалить монету
+        /// DELETE: api/coins/5
         /// </summary>
-        /// <param name="id">Идентификатор монеты</param>
-        /// <returns>Результат операции</returns>
-        [HttpDelete("delete-coin-and-coinExchanges/{id}")]
-        public async Task<IActionResult> DeleteCoinAndCoinRate([Range(1, int.MaxValue)]int id)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete([Range(1, int.MaxValue)] int id)
         {
-            try
-            {
-                await _coinService.DeleteCoinAsync(id);
-
-                return Ok(true);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            await _coinService.DeleteCoinAsync(id);
+            return NoContent(); // 204 No Content
         }
     }
 }

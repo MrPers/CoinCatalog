@@ -7,7 +7,7 @@ using Base.Data;
 
 namespace Coin.Data.Repository
 {
-    public class CoinRepository : BaseDataContext<Entity.DB.Coin, CoinDto, int>, ICoinRepository
+    public class CoinRepository : BaseDataContext<Entity.DB.CoinDetails, CoinDetailsDto, int>, ICoinRepository
     {
 
         private readonly DataContext _context;
@@ -22,17 +22,17 @@ namespace Coin.Data.Repository
         //{
         //}
 
-        public async Task<CoinDto> GetCoinsAllFullInformationAsync([Range(0, long.MaxValue)] int id)
+        public async Task<CoinDetailsDto> GetCoinsAllFullInformationAsync([Range(0, long.MaxValue)] int id)
         {
             var productDto = await _context.Coins
                 .Where(p => p.Id == id).FirstAsync();
 
-            return _mapper.Map<CoinDto>(productDto);
+            return _mapper.Map<CoinDetailsDto>(productDto);
         }
 
-        public async Task<ICollection<CoinDto>> GetCoinsAllWithPreviousInformationAsync()
+        public async Task<ICollection<CoinDetailsDto>> GetCoinsAllWithPreviousInformationAsync()
         {
-            ICollection<CoinDto> productsDto = new List<CoinDto>();
+            ICollection<CoinDetailsDto> productsDto = new List<CoinDetailsDto>();
 
             foreach (var item in await _context.Coins.ToListAsync())
             {
@@ -43,7 +43,7 @@ namespace Coin.Data.Repository
                         .Where(p => p.CoinId == item.Id).Max(v => v.Time)),
                     p => p.Id,
                     t => t.CoinId,
-                    (p, t) => new CoinDto
+                    (p, t) => new CoinDetailsDto
                     {
                         Id = p.Id,
                         Name = p.Name,

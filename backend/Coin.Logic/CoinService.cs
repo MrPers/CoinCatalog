@@ -1,139 +1,147 @@
-﻿using AutoMapper;
+﻿using Coin.Contracts.Persistence;
 using Coin.Contracts.Repo;
 using Coin.Contracts.Services;
-using Coin.DTO;
-using System.ComponentModel.DataAnnotations;
-using Coin.Contracts.Persistence;
 using Coin.Data;
+using Coin.DTO;
+using Microsoft.Extensions.Logging;
 
 namespace Coin.Logic
 {
-    /// <summary>
-    /// Сервис для работы с криптовалютами
-    /// Реализует бизнес-логику операций с монетами и их курсами
-    /// </summary>
     public class CoinService : ICoinService
     {
-        private readonly ICoinAPI _CoinFromAPI;
+        private readonly ICoinApiClient _coinApiClient;
         private readonly ICoinRepository _coinRepository;
         private readonly ICoinExchangeRepository _coinExchangeRepository;
+        private readonly ILogger<CoinService> _logger;
 
-        /// <summary>
-        /// Конструктор сервиса
-        /// </summary>
-        /// <param name="dispatchRepository">Репозиторий для работы с монетами</param>
-        /// <param name="coinExchangeRepository">Репозиторий для работы с курсами</param>
-        /// <param name="CoinFromAPI">API для получения данных о монетах</param>
-        public CoinService(ICoinRepository dispatchRepository, ICoinExchangeRepository coinExchangeRepository, ICoinAPI CoinFromAPI)
+        public CoinService(
+            ICoinRepository coinRepository,
+            ICoinExchangeRepository coinExchangeRepository,
+            ICoinApiClient coinApiClient,
+            ILogger<CoinService> logger)
         {
+            _coinRepository = coinRepository;
             _coinExchangeRepository = coinExchangeRepository;
-            _coinRepository = dispatchRepository;
-            _CoinFromAPI = CoinFromAPI;
+            _coinApiClient = coinApiClient;
+            _logger = logger;
         }
 
-        /// <summary>
-        /// Получение всех монет с предыдущей информацией
-        /// </summary>
-        /// <returns>Коллекция монет</returns>
-        public async Task<ICollection<CoinDto>> GetCoinsAllPreviousInformationAsync()
+        public async Task AddCoinHistoryAsync(string coinName, long startTicks = 0)
         {
-            var coins = await _coinRepository.GetCoinsAllWithPreviousInformationAsync();
+            if (string.IsNullOrWhiteSpace(coinName))
+                throw new ArgumentNullException(nameof(coinName));
 
-            return coins;
+            // Логика даты: если ticks переданы, берем их, иначе - год назад.
+            var startDate = startTicks > 0
+                ? DateTimeOffset.FromUnixTimeMilliseconds(startTicks).DateTime
+                : DateTime.UtcNow.AddYears(-1);
+
+            try
+            {
+                // 1. Получаем инфо о монете
+                var coinDetails = await _coinApiClient.GetCoinDetailsAsync(coinName);
+                if (coinDetails == null)
+                    throw new InvalidOperationException($"Coin '{coinName}' not found via API.");
+
+                // 2. Получаем исторические данные
+                var history = await _coinApiClient.GetCoinHistoryAsync(coinDetails.Name, startDate);
+
+                if (!history.Any())
+                {
+                    _logger.LogWarning("No history found for coin {CoinName} since {Date}", coinName, startDate);
+                    return;
+                }
+
+                // 3. Сохраняем монету в БД и получаем её ID
+                var storedCoinId = await _coinRepository.AddAsync(coinDetails);
+
+                // 4. Привязываем историю к ID монеты
+                foreach (var item in history)
+                {
+                    item.CoinId = storedCoinId;
+                }
+
+                // 5. Сохраняем историю пакетом
+                await _coinExchangeRepository.AddCollectionAsync(history);
+
+                _logger.LogInformation("Successfully added {Count} records for {CoinName}", history.Count, coinName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while adding coin history for {CoinName}", coinName);
+                // Пробрасываем исключение дальше или оборачиваем в Custom Exception, но не теряем InnerException
+                throw new InvalidOperationException($"Failed to process coin: {coinName}", ex);
+            }
         }
 
-        /// <summary>
-        /// Получение всех курсов монеты по ID с заданным шагом
-        /// </summary>
-        /// <param name="id">Идентификатор монеты</param>
-        /// <param name="step">Шаг времени в часах</param>
-        /// <returns>Коллекция курсов</returns>
-        public async Task<ICollection<CoinRateDto>> GetCoinRateAllByIdAsync([Range(1, int.MaxValue)] int id, [Range(24, int.MaxValue)] int step)
+        public async Task<ICollection<CoinDetailsDto>> GetCoinsAllPreviousInformationAsync()
         {
-            var coins = await _coinExchangeRepository.GetCoinRateAllByIdAsync(id, step);
-
-            return coins;
+            return await _coinRepository.GetCoinsAllWithPreviousInformationAsync();
         }
 
-        /// <summary>
-        /// Получение полной информации о монете по ID
-        /// </summary>
-        /// <param name="id">Идентификатор монеты</param>
-        /// <returns>Полная информация о монете</returns>
-        public async Task<CoinDto> GetCoinsAllFullInformationAsync([Range(1, int.MaxValue)] int id)
+        public async Task<ICollection<CoinPriceDto>> GetCoinRateAllByIdAsync(int id, int step)
         {
+            // Ручная валидация, так как [Range] тут не сработает
+            if (id < 1) throw new ArgumentOutOfRangeException(nameof(id));
+            if (step < 24) throw new ArgumentOutOfRangeException(nameof(step), "Step must be at least 24 hours");
+
+            return await _coinExchangeRepository.GetCoinsPricesByIdAsync(id, step);
+        }
+
+        public async Task<CoinDetailsDto> GetCoinsAllFullInformationAsync(int id)
+        {
+            if (id < 1) throw new ArgumentOutOfRangeException(nameof(id));
+
             var coin = await _coinRepository.GetCoinsAllFullInformationAsync(id);
+
+            if (coin == null)
+            {
+                // Хорошая практика явно сообщать, если ничего не найдено, 
+                // или возвращать null, чтобы контроллер вернул 404.
+                _logger.LogWarning("Coin with id {Id} not found", id);
+            }
 
             return coin;
         }
 
-        /// <summary>
-        /// Добавление новой монеты с историей курсов
-        /// </summary>
-        /// <param name="name">Название монеты</param>
-        /// <param name="ticks">Временная метка начала отслеживания</param>
-        public async Task AddCoinCoinExchangesAsync(string name, [Range(long.MinValue, long.MaxValue)] long ticks = 0)
+        public async Task UpdateCoinsByCoinIdAsync(int id)
         {
-            if (string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentException("Parameter cannot be null", nameof(name));
-            }
+            if (id < 1) throw new ArgumentOutOfRangeException(nameof(id));
 
             try
             {
-                var data = DateTime.UtcNow.AddDays(-365);
-                var newCoins = await _CoinFromAPI.TakeCoinNameFromAPIAsync(name);
-                var coinExchanges = await _CoinFromAPI.TakeCoinsFromAPIAsync(newCoins.Name, data);
-                var answerCoins = await _coinRepository.AddAsync(newCoins);
-                //coinExchanges.ToList().ForEach(x => x.CoinId = answerCoins);
-                //await _coinExchangeRepository.AddCollectionAsync(coinExchanges);
+                var coin = await _coinRepository.GetCoinsAllFullInformationAsync(id);
+                if (coin == null) throw new KeyNotFoundException($"Coin with ID {id} not found");
+
+                var history = await _coinApiClient.GetCoinHistoryAsync(coin.Name, DateTime.UtcNow);
+
+                if (history.Any())
+                {
+                    // Опять же: лучше делегировать присвоение ID репозиторию (как мы обсуждали),
+                    // но если делаем тут, то через foreach (это быстрее и понятнее для отладки, чем .ToList().ForEach)
+                    foreach (var item in history)
+                    {
+                        item.CoinId = id;
+                    }
+
+                    await _coinExchangeRepository.AddCollectionAsync(history);
+                    _logger.LogInformation("Updated coin {Id}. Added {Count} records.", id, history.Count);
+                }
             }
             catch (Exception ex)
             {
-                throw new ArgumentException($"Coin not found {name}", ex.Message);
+                _logger.LogError(ex, "Failed to update coin {Id}", id);
+                throw; 
             }
         }
 
-        /// <summary>
-        /// Обновление данных монеты по ID
-        /// Получает новые курсы с момента последнего обновления
-        /// </summary>
-        /// <param name="id">Идентификатор монеты</param>
-        public async Task UpdateCoinsByCoinIdAsync([Range(1, int.MaxValue)] int id)
+        public async Task DeleteCoinAsync(int id)
         {
-            try
-            {
-                //var lastDateTime = await _coinExchangeRepository.GetLastCoinRepositoryAsync(id);
-                //if (DateTime.Now.Ticks - lastDateTime.AddHours(8).Ticks < 0)
-                //{
-                //    throw new ArgumentException("8 hours have not yet passed for the update");
-                //}
-                //var coin = await _coinRepository.GetCoinsAllFullInformationAsync(id);
-                //var coinExchanges = await _CoinFromAPI.TakeCoinsFromAPIAsync(coin.Name, lastDateTime.AddHours(8));
-                //coinExchanges.ToList().ForEach(x => x.CoinId = id);
-                //await _coinExchangeRepository.AddCollectionAsync(coinExchanges);
-            }
-            catch (Exception er)
-            {
-                throw new ArgumentException(er.Message);
-            }
-        }
+            if (id < 1) throw new ArgumentOutOfRangeException(nameof(id));
 
-        /// <summary>
-        /// Удаление монеты и всех связанных курсов
-        /// </summary>
-        /// <param name="id">Идентификатор монеты</param>
-        public async Task DeleteCoinAsync([Range(1, int.MaxValue)] int id)
-        {
-            try
-            {
-                await _coinRepository.DeleteAsync(id);
-            }
-            catch (Exception er)
-            {
-                throw new ArgumentException(er.Message);
-            }
-        }
+            await _coinRepository.DeleteAsync(id);
 
+            _logger.LogInformation("Coin {Id} deleted successfully", id);
+        }
     }
 }

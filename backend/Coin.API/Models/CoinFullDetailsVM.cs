@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Coin.Api.Models
 {
-    public class CoinFullVM
+    public class CoinFullDetailsVM
     {
         public int Id { get; set; }
         public string Name { get; set; }
